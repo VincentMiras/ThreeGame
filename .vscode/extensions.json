@@ -1,0 +1,13 @@
+{
+  "recommendations": [
+    "mhutchie.git-graph",
+    "cloudedcat.vscode-model-viewer",
+    "mohitkumartoshniwal.3d-preview",
+    "kiui.mesh-viewer",
+    "cesium.gltf-vscode",
+    "naumovs.color-highlight",
+    "slevesque.shader",
+    "raczzalan.webgl-glsl-editor",
+    "Gruntfuggly.todo-tree"
+  ]
+}
