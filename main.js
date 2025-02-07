@@ -11,7 +11,15 @@ import {
   Mesh,
   MeshNormalMaterial,
   AmbientLight,
-  Clock
+  Clock,
+  Vector3,
+  SphereGeometry,
+  MeshToonMaterial,
+  Light,
+  Color,
+  DirectionalLight,
+  HemisphereLight,
+  CylinderGeometry
 } from 'three';
 
 // If you prefer to import the whole library, with the THREE prefix, use the following line instead:
@@ -41,6 +49,10 @@ import {
   GLTFLoader
 } from 'three/addons/loaders/GLTFLoader.js';
 
+import * as CANNON from 'cannon-es';
+
+import CannonDebugger from 'cannon-es-debugger';
+
 // Example of hard link to official repo for data, if needed
 // const MODEL_PATH = 'https://raw.githubusercontent.com/mrdoob/three.js/r173/examples/models/gltf/LeePerrySmith/LeePerrySmith.glb';
 
@@ -49,49 +61,183 @@ import {
 
 const scene = new Scene();
 const aspect = window.innerWidth / window.innerHeight;
-const camera = new PerspectiveCamera(75, aspect, 0.1, 1000);
+const camera = new PerspectiveCamera(70, aspect, 0.1, 1000);
+camera.position.z = 0;
+camera.position.y = 1.70;
 
-const light = new AmbientLight(0xffffff, 1.0); // soft white light
-scene.add(light);
+
+
 
 const renderer = new WebGLRenderer();
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
 
-const controls = new OrbitControls(camera, renderer.domElement);
-controls.listenToKeyEvents(window); // optional
 
-const geometry = new BoxGeometry(1, 1, 1);
-const material = new MeshNormalMaterial();
-const cube = new Mesh(geometry, material);
 
-scene.add(cube);
+//WORLD 
+const world = new CANNON.World({
+  gravity: new CANNON.Vec3(0, -9.81, 0)
+})
 
-function loadData() {
-  new GLTFLoader()
-    .setPath('assets/models/')
-    .load('test.glb', gltfReader);
+const groundBody = new CANNON.Body({
+  type: CANNON.Body.STATIC,
+  shape: new CANNON.Plane(),
+})
+
+groundBody.quaternion.setFromEuler(-Math.PI / 2, 0, 0)
+world.addBody(groundBody)
+
+const groundGeometry = new BoxGeometry(1000, 1, 1000);
+const groundMaterial = new MeshToonMaterial();
+const ground = new Mesh(groundGeometry, groundMaterial);
+
+ground.position.set(0, -0.5, 0);
+scene.add(ground);
+
+const cannonDebugger = new CannonDebugger(scene, world, {
+})
+
+//LIGHT
+
+scene.background = new Color(0x87CEEB);
+const light = new AmbientLight(0xffffff, 0.3); // soft white light
+scene.add(light);
+
+//Soleil
+const directionalLight = new DirectionalLight(0xffffff, 1);
+directionalLight.position.set(10, 10, 10);
+scene.add(directionalLight);
+
+// lumière jolie
+const hemisphereLight = new HemisphereLight(0xaaaaaa, 0x0000ff, 0.9); // Lumière douce venant du ciel
+scene.add(hemisphereLight);
+
+// test
+const directionalLight2 = new DirectionalLight(0xffdd99, 1);
+directionalLight2.position.set(5, 10, 5).normalize();
+scene.add(directionalLight2);
+
+
+//PLAYER
+
+const playerDirection = new Vector3();
+
+//LISTNER CONTROLS
+const STEPS_PER_FRAME = 5;
+
+const keyStates = {};
+document.addEventListener('keydown', (event) => {
+  keyStates[event.code] = true;
+});
+
+document.addEventListener('keyup', (event) => {
+  keyStates[event.code] = false;
+});
+
+window.addEventListener('click', (event) => {
+  if (event.button === 0) {
+    shootArrow();
+  }
+});
+
+//BULLET GESTION
+
+const arrows = [];
+const arrowSpeed = 50;
+
+//LOADING BULLETS
+let arrow = null
+const b_loader = new GLTFLoader().setPath('assets/models/');
+b_loader.load('Arrow.glb', (gltf) => {
+  arrow = gltf.scene
+  arrow.rotation.x -= Math.PI / 2;
+});
+
+//LOADING CASTLE
+const c_loader = new GLTFLoader().setPath('assets/models/');
+c_loader.load('Castle.glb', (gltf) => {
+  const castle = gltf.scene;
+  castle.scale.set(100, 100, 100);
+  scene.add(castle);
+}, undefined, (error) => {
+  console.error("Erreur de chargement du modèle:", error);
+});
+
+//VECTEUR AVANT
+function getForwardVector() {
+
+  camera.getWorldDirection(playerDirection);
+  playerDirection.y = 0;
+  playerDirection.normalize();
+
+  return playerDirection;
+
+}
+
+//BULLET SEND
+function shootArrow() {
+  if (!arrow) return;
+
+  const arrowClone = arrow.clone();
+  const direction = getForwardVector();
+  arrowClone.position.copy(camera.position).add(direction.clone());
+
+  arrowClone.lookAt(arrowClone.position.clone().add(direction));
+  arrowClone.rotation.x -= Math.PI / 2;
+
+  // Créer un corps physique pour la flèche
+  const arrowBody = new CANNON.Body({
+    mass: 1,
+    position: new CANNON.Vec3(arrowClone.position.x, arrowClone.position.y, arrowClone.position.z),
+    shape: new CANNON.Box(new CANNON.Vec3(0.05, 0.7, 0.05)),
+  });
+
+  world.addBody(arrowBody);
+
+  const arrowSpeedVector = direction.clone().multiplyScalar(arrowSpeed);
+  arrowBody.velocity.set(arrowSpeedVector.x, arrowSpeedVector.y, arrowSpeedVector.z);
+
+
+  arrowClone.userData.body = arrowBody;
+
+
+  scene.add(arrowClone);
+  arrows.push(arrowClone);
 }
 
 
-function gltfReader(gltf) {
-  let testModel = null;
+//Bullet Update
+function bullet_update() {
+  arrows.forEach(arrowClone => {
+    const arrowBody = arrowClone.userData.body;
 
-  testModel = gltf.scene;
+    arrowClone.position.copy(arrowBody.position);
+    arrowClone.quaternion.copy(arrowBody.quaternion);
 
-  if (testModel != null) {
-    console.log("Model loaded:  " + testModel);
-    scene.add(gltf.scene);
-  } else {
-    console.log("Load FAILED.  ");
+  });
+}
+
+//ACTIONS CONTROLS
+function controls() {
+
+  let rotationSpeed = 0.005;
+
+  if (keyStates['KeyW']) {
+    camera.position.addScaledVector(getForwardVector(), 0.05);
+  }
+
+  if (keyStates['KeyS']) {
+    camera.position.addScaledVector(getForwardVector(), -0.05);
+  }
+
+  if (keyStates['KeyA']) {
+    camera.rotation.y += rotationSpeed;
+  }
+
+  if (keyStates['KeyD']) {
+    camera.rotation.y -= rotationSpeed;
   }
 }
-
-loadData();
-
-
-camera.position.z = 3;
-
 
 const clock = new Clock();
 
@@ -99,14 +245,16 @@ const clock = new Clock();
 const animation = () => {
 
   renderer.setAnimationLoop(animation); // requestAnimationFrame() replacement, compatible with XR 
+  world.fixedStep()
+  cannonDebugger.update()
 
-  const delta = clock.getDelta();
-  const elapsed = clock.getElapsedTime();
 
-  // can be used in shaders: uniforms.u_time.value = elapsed;
+  for (let i = 0; i < STEPS_PER_FRAME; i++) {
 
-  cube.rotation.x = elapsed / 2;
-  cube.rotation.y = elapsed / 1;
+    controls();
+    bullet_update();
+
+  }
 
   renderer.render(scene, camera);
 };
