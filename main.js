@@ -134,16 +134,28 @@ document.addEventListener('keyup', (event) => {
   keyStates[event.code] = false;
 });
 
-window.addEventListener('click', (event) => {
+window.addEventListener('mousedown', (event) => {
   if (event.button === 0) {
-    shootArrow();
+    pressStartTime = Date.now();
+    isPressing = true;
   }
 });
+
+window.addEventListener('mouseup', (event) => {
+  if (event.button === 0) {
+    const pressDuration = (Date.now() - pressStartTime) / 1000; 
+    shootArrow(pressDuration); 
+    isPressing = false;
+  }
+});
+
 
 //BULLET GESTION
 
 const arrows = [];
-const arrowSpeed = 50;
+const arrowSpeed = 5;
+let pressStartTime = 0; 
+let isPressing = false;
 
 //LOADING BULLETS
 let arrow = null
@@ -175,28 +187,37 @@ function getForwardVector() {
 }
 
 //BULLET SEND
-function shootArrow() {
+function shootArrow(pressDuration) {
   if (!arrow) return;
 
+  //position fleche camera 
   const arrowClone = arrow.clone();
   const direction = getForwardVector();
   arrowClone.position.copy(camera.position).add(direction.clone());
 
-  arrowClone.lookAt(arrowClone.position.clone().add(direction));
-  arrowClone.rotation.x -= Math.PI / 2;
+  //rotation fleche direction caméra
+  const quaternion = new CANNON.Quaternion();
+  const angleY = Math.atan2(direction.x, direction.z);
+  quaternion.setFromEuler(0, angleY, 0);
 
   // Créer un corps physique pour la flèche
   const arrowBody = new CANNON.Body({
-    mass: 1,
+    mass: 0.5 ,
     position: new CANNON.Vec3(arrowClone.position.x, arrowClone.position.y, arrowClone.position.z),
-    shape: new CANNON.Box(new CANNON.Vec3(0.05, 0.7, 0.05)),
+    shape: new CANNON.Box(new CANNON.Vec3(0.05, 0.05, 0.7)),
+    quaternion :quaternion.clone()
   });
 
-  world.addBody(arrowBody);
+  let charge = pressDuration * 50
+  if (charge>100){
+    charge=100;
+  }
 
-  const arrowSpeedVector = direction.clone().multiplyScalar(arrowSpeed);
+  const arrowSpeedVector = direction.clone().multiplyScalar(arrowSpeed+charge);
   arrowBody.velocity.set(arrowSpeedVector.x, arrowSpeedVector.y, arrowSpeedVector.z);
-
+  
+  
+  world.addBody(arrowBody);
 
   arrowClone.userData.body = arrowBody;
 
