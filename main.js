@@ -56,23 +56,14 @@ import CannonDebugger from 'cannon-es-debugger';
 // Example of hard link to official repo for data, if needed
 // const MODEL_PATH = 'https://raw.githubusercontent.com/mrdoob/three.js/r173/examples/models/gltf/LeePerrySmith/LeePerrySmith.glb';
 
-
-// INSERT CODE HERE
-
+//Global
 const scene = new Scene();
 const aspect = window.innerWidth / window.innerHeight;
 const camera = new PerspectiveCamera(70, aspect, 0.1, 1000);
-camera.position.z = 0;
-camera.position.y = 1.70;
-
-
-
-
+const STEPS_PER_FRAME = 5;
 const renderer = new WebGLRenderer();
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
-
-
 
 //WORLD 
 const world = new CANNON.World({
@@ -97,6 +88,22 @@ scene.add(ground);
 const cannonDebugger = new CannonDebugger(scene, world, {
 })
 
+//PLAYER 
+
+let playerDirection=new Vector3()
+
+camera.position.z = 0;
+camera.position.y = 1.70;
+
+const hitboxPlayer = new CANNON.Body({
+  mass: 0,
+  position: new Vector3(0,0.01,0),
+  shape: new CANNON.Box(new Vector3(0.1,1.80,0.1))
+});
+
+world.addBody(hitboxPlayer);
+
+
 //LIGHT
 
 scene.background = new Color(0x87CEEB);
@@ -118,12 +125,8 @@ directionalLight2.position.set(5, 10, 5).normalize();
 scene.add(directionalLight2);
 
 
-//PLAYER
-
-const playerDirection = new Vector3();
-
 //LISTNER CONTROLS
-const STEPS_PER_FRAME = 5;
+
 
 const keyStates = {};
 document.addEventListener('keydown', (event) => {
@@ -200,28 +203,27 @@ function shootArrow(pressDuration) {
   const angleY = Math.atan2(direction.x, direction.z);
   quaternion.setFromEuler(0, angleY, 0);
 
-  // Créer un corps physique pour la flèche
+  // Physique fleche
   const arrowBody = new CANNON.Body({
     mass: 0.5 ,
     position: new CANNON.Vec3(arrowClone.position.x, arrowClone.position.y, arrowClone.position.z),
     shape: new CANNON.Box(new CANNON.Vec3(0.05, 0.05, 0.7)),
     quaternion :quaternion.clone()
   });
-
+  
+  //charge fleche
   let charge = pressDuration * 50
   if (charge>100){
     charge=100;
   }
 
+  //Vitesse
   const arrowSpeedVector = direction.clone().multiplyScalar(arrowSpeed+charge);
   arrowBody.velocity.set(arrowSpeedVector.x, arrowSpeedVector.y, arrowSpeedVector.z);
   
-  
+  //ajout fleche monde
   world.addBody(arrowBody);
-
   arrowClone.userData.body = arrowBody;
-
-
   scene.add(arrowClone);
   arrows.push(arrowClone);
 }
@@ -237,6 +239,12 @@ function bullet_update() {
 
   });
 }
+
+//Player Update
+function player_update() {
+  hitboxPlayer.position.copy(camera.position);
+  hitboxPlayer.position.y = camera.position.y - 1.69;
+  };
 
 //ACTIONS CONTROLS
 function controls() {
@@ -274,6 +282,7 @@ const animation = () => {
 
     controls();
     bullet_update();
+    player_update();
 
   }
 
