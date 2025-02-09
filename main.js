@@ -95,13 +95,13 @@ let playerDirection=new Vector3()
 camera.position.z = 0;
 camera.position.y = 1.70;
 
-const hitboxPlayer = new CANNON.Body({
-  mass: 0,
-  position: new Vector3(0,0.01,0),
-  shape: new CANNON.Box(new Vector3(0.1,1.80,0.1))
-});
+// const hitboxPlayer = new CANNON.Body({
+//   mass: 0,
+//   position: new Vector3(0,0.01,0),
+//   shape: new CANNON.Box(new Vector3(0.1,1.80,0.1))
+// });
 
-world.addBody(hitboxPlayer);
+// world.addBody(hitboxPlayer);
 
 
 //LIGHT
@@ -172,11 +172,45 @@ b_loader.load('Arrow.glb', (gltf) => {
 const c_loader = new GLTFLoader().setPath('assets/models/');
 c_loader.load('Castle.glb', (gltf) => {
   const castle = gltf.scene;
-  castle.scale.set(100, 100, 100);
+  castle.traverse((child) => {
+    if (child.isMesh) {
+      child.geometry.scale(100, 100, 100);
+      child.geometry.computeBoundingBox(); // Recalcule les limites après le scaling
+    }
+  });
   scene.add(castle);
-}, undefined, (error) => {
-  console.error("Erreur de chargement du modèle:", error);
+
+  // Extraire la géométrie du modèle
+  gltf.scene.traverse((child) => {
+    if (child.isMesh) {
+      const castleBody = new CANNON.Body({
+        type: CANNON.Body.STATIC,
+        shape: createTrimeshFromGeometry(child.geometry, 100),
+        position: new CANNON.Vec3(0, 0, 0)
+      });
+      castleBody.quaternion.setFromEuler(-Math.PI / 2, 0, 0); 
+      
+      world.addBody(castleBody);
+    }
+  });
 });
+
+
+
+
+
+
+
+
+//FUNCTION
+
+
+
+
+
+
+
+
 
 //VECTEUR AVANT
 function getForwardVector() {
@@ -207,9 +241,18 @@ function shootArrow(pressDuration) {
   const arrowBody = new CANNON.Body({
     mass: 0.5 ,
     position: new CANNON.Vec3(arrowClone.position.x, arrowClone.position.y, arrowClone.position.z),
-    shape: new CANNON.Box(new CANNON.Vec3(0.05, 0.05, 0.7)),
     quaternion :quaternion.clone()
   });
+
+  const boxSize = new CANNON.Vec3(0.05, 0.05, 0.7);
+  const boxShape = new CANNON.Box(boxSize);
+  arrowBody.addShape(boxShape);
+
+  const sphereRadius = 0.05;
+  const sphereShape = new CANNON.Sphere(sphereRadius);
+
+  arrowBody.addShape(sphereShape, new CANNON.Vec3(0, 0, boxSize.z));  // Avant
+  arrowBody.addShape(sphereShape, new CANNON.Vec3(0, 0, -boxSize.z));
   
   //charge fleche
   let charge = pressDuration * 50
@@ -220,10 +263,11 @@ function shootArrow(pressDuration) {
   //Vitesse
   const arrowSpeedVector = direction.clone().multiplyScalar(arrowSpeed+charge);
   arrowBody.velocity.set(arrowSpeedVector.x, arrowSpeedVector.y, arrowSpeedVector.z);
-  
+
   //ajout fleche monde
-  world.addBody(arrowBody);
+
   arrowClone.userData.body = arrowBody;
+  world.addBody(arrowBody);
   scene.add(arrowClone);
   arrows.push(arrowClone);
 }
@@ -268,13 +312,20 @@ function controls() {
   }
 }
 
+//hitbox castle
+function createTrimeshFromGeometry(geometry, scaleFactor) {
+  const vertices = geometry.attributes.position.array.map(v => v * scaleFactor);
+  const indices = geometry.index.array;
+  return new CANNON.Trimesh(vertices, indices);
+}
+
 const clock = new Clock();
 
 // Main loop
 const animation = () => {
 
   renderer.setAnimationLoop(animation); // requestAnimationFrame() replacement, compatible with XR 
-  world.fixedStep()
+  
   cannonDebugger.update()
 
 
@@ -282,9 +333,11 @@ const animation = () => {
 
     controls();
     bullet_update();
-    player_update();
+    //player_update();
+    world.fixedStep()
 
   }
+
 
   renderer.render(scene, camera);
 };
