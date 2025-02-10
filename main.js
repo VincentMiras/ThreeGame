@@ -90,7 +90,7 @@ const cannonDebugger = new CannonDebugger(scene, world, {
 
 //PLAYER 
 
-let playerDirection=new Vector3()
+let playerDirection = new Vector3()
 
 camera.position.z = 0;
 camera.position.y = 1.70;
@@ -146,8 +146,8 @@ window.addEventListener('mousedown', (event) => {
 
 window.addEventListener('mouseup', (event) => {
   if (event.button === 0) {
-    const pressDuration = (Date.now() - pressStartTime) / 1000; 
-    shootArrow(pressDuration); 
+    const pressDuration = (Date.now() - pressStartTime) / 1000;
+    shootArrow(pressDuration);
     isPressing = false;
   }
 });
@@ -157,7 +157,7 @@ window.addEventListener('mouseup', (event) => {
 
 const arrows = [];
 const arrowSpeed = 5;
-let pressStartTime = 0; 
+let pressStartTime = 0;
 let isPressing = false;
 
 //LOADING BULLETS
@@ -184,12 +184,12 @@ c_loader.load('Castle.glb', (gltf) => {
   gltf.scene.traverse((child) => {
     if (child.isMesh) {
       const castleBody = new CANNON.Body({
-        type: CANNON.Body.STATIC,
+        type: CANNON.Body.AWAKE,
         shape: createTrimeshFromGeometry(child.geometry, 100),
         position: new CANNON.Vec3(0, 0, 0)
       });
-      castleBody.quaternion.setFromEuler(-Math.PI / 2, 0, 0); 
-      
+      castleBody.quaternion.setFromEuler(-Math.PI / 2, 0, 0);
+
       world.addBody(castleBody);
     }
   });
@@ -239,9 +239,10 @@ function shootArrow(pressDuration) {
 
   // Physique fleche
   const arrowBody = new CANNON.Body({
-    mass: 0.5 ,
+    // type: CANNON.Body.AWAKE,
+    mass: 0.5,
     position: new CANNON.Vec3(arrowClone.position.x, arrowClone.position.y, arrowClone.position.z),
-    quaternion :quaternion.clone()
+    quaternion: quaternion.clone()
   });
 
   const boxSize = new CANNON.Vec3(0.05, 0.05, 0.7);
@@ -253,15 +254,15 @@ function shootArrow(pressDuration) {
 
   arrowBody.addShape(sphereShape, new CANNON.Vec3(0, 0, boxSize.z));  // Avant
   arrowBody.addShape(sphereShape, new CANNON.Vec3(0, 0, -boxSize.z));
-  
+
   //charge fleche
   let charge = pressDuration * 50
-  if (charge>100){
-    charge=100;
+  if (charge > 50) {
+    charge = 50;
   }
 
   //Vitesse
-  const arrowSpeedVector = direction.clone().multiplyScalar(arrowSpeed+charge);
+  const arrowSpeedVector = direction.clone().multiplyScalar(arrowSpeed + charge);
   arrowBody.velocity.set(arrowSpeedVector.x, arrowSpeedVector.y, arrowSpeedVector.z);
 
   //ajout fleche monde
@@ -288,7 +289,7 @@ function bullet_update() {
 function player_update() {
   hitboxPlayer.position.copy(camera.position);
   hitboxPlayer.position.y = camera.position.y - 1.69;
-  };
+};
 
 //ACTIONS CONTROLS
 function controls() {
@@ -325,7 +326,7 @@ const clock = new Clock();
 const animation = () => {
 
   renderer.setAnimationLoop(animation); // requestAnimationFrame() replacement, compatible with XR 
-  
+
   cannonDebugger.update()
 
 
