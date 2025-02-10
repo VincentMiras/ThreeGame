@@ -257,8 +257,8 @@ function shootArrow(pressDuration) {
 
   //charge fleche
   let charge = pressDuration * 50
-  if (charge > 50) {
-    charge = 50;
+  if (charge > 100) {
+    charge = 100;
   }
 
   //Vitesse
@@ -335,7 +335,7 @@ const animation = () => {
     controls();
     bullet_update();
     //player_update();
-    world.fixedStep()
+    world.fixedStep(1 / 50)
 
   }
 
