@@ -158,7 +158,6 @@ window.addEventListener('mouseup', (event) => {
 const arrows = [];
 const arrowSpeed = 5;
 let pressStartTime = 0;
-let isPressing = false;
 
 //LOADING BULLETS
 let arrow = null
@@ -178,37 +177,37 @@ c_loader.load('Castle.glb', (gltf) => {
       child.geometry.computeBoundingBox();
     }
   });
-  scene.add(castle);  
+  scene.add(castle);
   // MURS
   const walls = [
     // gauche
-    { xbg: -102.5, zbg: 92, xhd: -78, zhd: -96},
+    { xbg: -102.5, zbg: 92, xhd: -78, zhd: -96 },
     //haut
-    { xbg: -102.5, zbg: -71, xhd: 102.5, zhd: -96.5},
+    { xbg: -102.5, zbg: -71, xhd: 102.5, zhd: -96.5 },
     //droite
-    { xbg: 78, zbg: 92, xhd: 102.5, zhd: -96},
+    { xbg: 78, zbg: 92, xhd: 102.5, zhd: -96 },
     //bas gauche
-    { xbg: -102.5, zbg: 92, xhd: -13.5, zhd: 66.5},
+    { xbg: -102.5, zbg: 92, xhd: -13.5, zhd: 66.5 },
     //bas droite
-    { xbg: 13.5, zbg: 92, xhd: 102.5, zhd: 66.5},
+    { xbg: 13.5, zbg: 92, xhd: 102.5, zhd: 66.5 },
   ];
 
   walls.forEach(wall => {
     const shape = new CANNON.Box(new CANNON.Vec3(
-      Math.abs(wall.xbg-wall.xhd)/2, 
-      50, 
-      Math.abs(wall.zbg-wall.zhd)/2, 
+      Math.abs(wall.xbg - wall.xhd) / 2,
+      50,
+      Math.abs(wall.zbg - wall.zhd) / 2,
     ));
-  const body = new CANNON.Body({
-    type: CANNON.Body.STATIC,
-    shape: shape,
-    position: new CANNON.Vec3(
-      (wall.xbg+wall.xhd)/2, 
-      50, 
-      (wall.zbg+wall.zhd)/2
-    )
-  });
-  world.addBody(body);
+    const body = new CANNON.Body({
+      type: CANNON.Body.STATIC,
+      shape: shape,
+      position: new CANNON.Vec3(
+        (wall.xbg + wall.xhd) / 2,
+        50,
+        (wall.zbg + wall.zhd) / 2
+      )
+    });
+    world.addBody(body);
   });
 });
 
@@ -236,13 +235,11 @@ function getForwardVector() {
   playerDirection.normalize();
 
   return playerDirection;
-
 }
 
 //BULLET SEND
 function shootArrow(pressDuration) {
   if (!arrow) return;
-  console.log(camera.position)
 
   //position fleche camera 
   const arrowClone = arrow.clone();
@@ -256,7 +253,6 @@ function shootArrow(pressDuration) {
 
   // Physique fleche
   const arrowBody = new CANNON.Body({
-    // type: CANNON.Body.AWAKE,
     mass: 0.5,
     position: new CANNON.Vec3(arrowClone.position.x, arrowClone.position.y, arrowClone.position.z),
     quaternion: quaternion.clone()
@@ -269,7 +265,7 @@ function shootArrow(pressDuration) {
   const sphereRadius = 0.05;
   const sphereShape = new CANNON.Sphere(sphereRadius);
 
-  arrowBody.addShape(sphereShape, new CANNON.Vec3(0, 0, boxSize.z));  // Avant
+  arrowBody.addShape(sphereShape, new CANNON.Vec3(0, 0, boxSize.z));
 
 
   //charge fleche
@@ -289,7 +285,6 @@ function shootArrow(pressDuration) {
   scene.add(arrowClone);
   arrows.push(arrowClone);
 }
-
 
 //Bullet Update
 function bullet_update() {
