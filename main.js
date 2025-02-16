@@ -9,17 +9,17 @@ import {
   WebGLRenderer,
   BoxGeometry,
   Mesh,
-  MeshNormalMaterial,
+  Sprite,
   AmbientLight,
   Clock,
   Vector3,
-  SphereGeometry,
+  CanvasTexture,
   MeshToonMaterial,
   Light,
   Color,
   DirectionalLight,
   HemisphereLight,
-  CylinderGeometry,
+  SpriteMaterial,
   AnimationMixer,
   LoopOnce
 } from 'three';
@@ -68,6 +68,22 @@ const STEPS_PER_FRAME = 5;
 const renderer = new WebGLRenderer();
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
+
+// CAnvas Score
+const scoreCanvas = document.createElement("canvas");
+const scoreCtx = scoreCanvas.getContext("2d");
+scoreCanvas.width = 256;
+scoreCanvas.height = 128;
+const scoreTexture = new CanvasTexture(scoreCanvas);
+
+const scoreMaterial = new SpriteMaterial({ map: scoreTexture });
+const scoreSprite = new Sprite(scoreMaterial);
+scoreSprite.scale.set(2, 1, 1);
+scoreSprite.position.set(7, 3, -5);
+camera.add(scoreSprite);
+scene.add(camera);
+
+
 
 //WORLD 
 const world = new CANNON.World({
@@ -225,7 +241,7 @@ captLoader.load('Pirate_Captain.glb', (gltf) => {
     capi.scale.set(1.4, 1.4, 1.4);
     capi.userData.animations = gltf.animations;
 
-    setInterval(spawnPirate, 10000);
+    setInterval(spawnPirate, 5000);
   });
 });
 
@@ -266,18 +282,14 @@ function killenemy(bodyA, bodyB) {
   let pirate = targets.find((t) => t.body === bodyA || t.body === bodyB);
   let arrow = arrows.find((a) => a.userData.body === bodyA || a.userData.body === bodyB);
 
-  if (!pirate) {
-    return;
-  }
-  if (!arrow) {
-    return;
-  }
+  if (!pirate || !arrow) return;
+  if (pirate.isDead) return;
 
   pirate.body.velocity.set(0, 0, 0);
   pirate.body.angularVelocity.set(0, 0, 0);
   pirate.isDead = true;
 
-  //La magie de l'animation 
+  // Jouer l'animation de mort
   if (pirate.capi?.userData.mixer && pirate.capi?.userData.animations) {
     const hitAnimation = pirate.capi.userData.animations[0];
     if (hitAnimation) {
@@ -290,11 +302,15 @@ function killenemy(bodyA, bodyB) {
       action.getMixer().addEventListener("finished", () => {
         scene.remove(pirate.capi);
         world.removeBody(pirate.body);
-        targets = targets.filter(t => t !== pirate);
+        targets = targets.filter((t) => t !== pirate);
       });
     }
   }
+
+  // Augmenter le score et mettre à jour
+  score += 10;
 }
+
 
 
 //VECTEUR AVANT
@@ -308,7 +324,6 @@ function getForwardVector() {
 }
 
 //position aleatoire
-
 function getRandomPositionInCastle() {
   // Coordonnées des murs (doivent être ajustées selon ton modèle)
   const minX = -80, maxX = 80;
@@ -353,12 +368,9 @@ function shootArrow(pressDuration) {
   arrowBody.addShape(sphereShape, new CANNON.Vec3(0, 0, boxSize.z));
   arrowBody.addEventListener("collide", (event) => {
     let relativeVelocity = event.contact.getImpactVelocityAlongNormal();
-    console.log(relativeVelocity)
-    if (Math.abs(relativeVelocity) > 10) {
+    if (Math.abs(relativeVelocity) > 15) {
       killenemy(event.body, event.target);
-    } else {
-      // Less energy
-    }
+    } else { }
   });
 
 
@@ -397,7 +409,6 @@ function player_update() {
   hitboxPlayer.position.y = camera.position.y - 1.69;
 };
 
-
 //enemy update
 function update_enemy() {
   const delta = clock.getDelta();
@@ -420,6 +431,16 @@ function update_enemy() {
       capi.userData.mixer.update(delta);
     }
   });
+}
+
+// Fonction pour mettre à jour le score
+let score = 0;
+function updateScore() {
+  scoreCtx.clearRect(0, 0, scoreCanvas.width, scoreCanvas.height);
+  scoreCtx.fillStyle = "green";
+  scoreCtx.font = "40px Uncial Antiqua";
+  scoreCtx.fillText(`Score: ${score}`, 20, 60);
+  scoreTexture.needsUpdate = true;
 }
 
 
@@ -463,6 +484,7 @@ const animation = () => {
     bullet_update();
     //player_update();
     update_enemy();
+    updateScore();
     world.fixedStep()
 
   }
