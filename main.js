@@ -19,7 +19,9 @@ import {
   Color,
   DirectionalLight,
   HemisphereLight,
-  CylinderGeometry
+  CylinderGeometry,
+  AnimationMixer,
+  LoopOnce
 } from 'three';
 
 // If you prefer to import the whole library, with the THREE prefix, use the following line instead:
@@ -44,6 +46,8 @@ import {
 import {
   OrbitControls
 } from 'three/addons/controls/OrbitControls.js';
+
+import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js';
 
 import {
   GLTFLoader
@@ -140,7 +144,6 @@ document.addEventListener('keyup', (event) => {
 window.addEventListener('mousedown', (event) => {
   if (event.button === 0) {
     pressStartTime = Date.now();
-    isPressing = true;
   }
 });
 
@@ -148,7 +151,6 @@ window.addEventListener('mouseup', (event) => {
   if (event.button === 0) {
     const pressDuration = (Date.now() - pressStartTime) / 1000;
     shootArrow(pressDuration);
-    isPressing = false;
   }
 });
 
@@ -211,8 +213,26 @@ c_loader.load('Castle.glb', (gltf) => {
   });
 });
 
+//LOAding pirates
+
+const captLoader = new GLTFLoader().setPath('assets/models/');
+let targets = [];
+let capi = null;
+
+captLoader.load('Pirate_Captain.glb', (gltf) => {
+  captLoader.load('Pirate_Captain.glb', (gltf) => {
+    capi = gltf.scene;
+    capi.scale.set(1.4, 1.4, 1.4);
+    capi.userData.animations = gltf.animations;
+
+    setInterval(spawnPirate, 10000);
+  });
+});
 
 
+world.addEventListener("collide", (event) => {
+  killenemy(event.body, event.target);
+});
 
 
 
@@ -221,10 +241,68 @@ c_loader.load('Castle.glb', (gltf) => {
 
 
 
+function spawnPirate() {
+  if (!capi) return;
+
+  const capiClone = SkeletonUtils.clone(capi);
+  const spawnPosition = getRandomPositionInCastle();
+  capiClone.position.set(spawnPosition.x, spawnPosition.y, spawnPosition.z);
+  scene.add(capiClone);
+
+  const shape = new CANNON.Sphere(1);
+  const body = new CANNON.Body({
+    mass: 1,
+    position: spawnPosition,
+    shape: shape
+  });
+  world.addBody(body);
+  targets.push({ capi: capiClone, body });
+
+  const mixer = new AnimationMixer(capiClone);
+  capiClone.userData.mixer = mixer;
+  capiClone.userData.animations = capi.userData.animations;
+  const action = mixer.clipAction(capi.userData.animations[11]);
+  action.play();
+}
 
 
+//gestion collisions
+function killenemy(bodyA, bodyB) {
+  let pirate = targets.find((t) => t.body === bodyA || t.body === bodyB);
+  let arrow = arrows.find((a) => a.userData.body === bodyA || a.userData.body === bodyB);
 
+  if (!pirate) {
+    return;
+  }
+  if (!arrow) {
+    console.log("⚠️ Pas de flèche trouvée !");
+    return;
+  }
 
+  console.log("🎯 Pirate touché !");
+
+  // Stopper la physique de la boule
+  pirate.body.velocity.set(0, 0, 0);
+  pirate.body.angularVelocity.set(0, 0, 0);
+  pirate.isDead = true; // Marquer le pirate comme mort
+
+  if (pirate.capi?.userData.mixer && pirate.capi?.userData.animations) {
+    const hitAnimation = pirate.capi.userData.animations[0];
+    if (hitAnimation) {
+      const action = pirate.capi.userData.mixer.clipAction(hitAnimation);
+      action.reset();
+      action.setLoop(LoopOnce);
+      action.clampWhenFinished = true;
+      action.play();
+
+      action.getMixer().addEventListener("finished", () => {
+        scene.remove(pirate.capi);
+        world.removeBody(pirate.body);
+        targets = targets.filter(t => t !== pirate);
+      });
+    }
+  }
+}
 
 
 //VECTEUR AVANT
@@ -236,6 +314,21 @@ function getForwardVector() {
 
   return playerDirection;
 }
+
+//position aleatoire
+
+function getRandomPositionInCastle() {
+  // Coordonnées des murs (doivent être ajustées selon ton modèle)
+  const minX = -80, maxX = 80;
+  const minZ = -70, maxZ = 70;
+  const y = 0; // Position au sol
+
+  const x = Math.random() * (maxX - minX) + minX;
+  const z = Math.random() * (maxZ - minZ) + minZ;
+
+  return new CANNON.Vec3(x, y, z);
+}
+
 
 //BULLET SEND
 function shootArrow(pressDuration) {
@@ -262,10 +355,14 @@ function shootArrow(pressDuration) {
   const boxShape = new CANNON.Box(boxSize);
   arrowBody.addShape(boxShape);
 
-  const sphereRadius = 0.05;
+  const sphereRadius = 0.03;
   const sphereShape = new CANNON.Sphere(sphereRadius);
 
   arrowBody.addShape(sphereShape, new CANNON.Vec3(0, 0, boxSize.z));
+  arrowBody.addEventListener("collide", (event) => {
+    console.log("Collision détectée avec:", event.body);
+    killenemy(event.body, arrowBody);
+  });
 
 
   //charge fleche
@@ -302,6 +399,33 @@ function player_update() {
   hitboxPlayer.position.copy(camera.position);
   hitboxPlayer.position.y = camera.position.y - 1.69;
 };
+
+
+//enemy update
+function update_enemy() {
+  const delta = clock.getDelta();
+  targets.forEach(({ capi, body, isDead }) => {
+    if (!isDead) {
+      // Mettre à jour la position et la rotation uniquement si le pirate n'est pas mort
+      capi.position.copy(body.position);
+      capi.position.y -= 1;
+
+      const direction = new Vector3();
+      direction.subVectors(camera.position, capi.position).setY(0).normalize();
+      capi.rotation.y = Math.atan2(direction.x, direction.z);
+
+      const speed = 1;
+      body.velocity.set(direction.x * speed, body.velocity.y, direction.z * speed);
+    }
+
+    // Mettre à jour l'animation même si le pirate est mort
+    if (capi.userData.mixer) {
+      capi.userData.mixer.update(delta);
+    }
+  });
+}
+
+
 
 //ACTIONS CONTROLS
 function controls() {
@@ -341,7 +465,8 @@ const animation = () => {
     controls();
     bullet_update();
     //player_update();
-    world.fixedStep(1 / 50)
+    update_enemy();
+    world.fixedStep()
 
   }
 
