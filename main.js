@@ -245,6 +245,18 @@ captLoader.load('Pirate_Captain.glb', (gltf) => {
   });
 });
 
+const skeletonLoader = new GLTFLoader().setPath('assets/models/');
+let skeletonModel = null;
+
+skeletonLoader.load('Skeleton.glb', (gltf) => {
+  skeletonModel = gltf.scene;
+  skeletonModel.scale.set(1.4, 1.4, 1.4);
+  skeletonModel.userData.animations = gltf.animations;
+
+  // Fait apparaître des squelettes toutes les 7 secondes
+  setInterval(spawnSkeleton, 7000);
+});
+
 
 
 
@@ -267,7 +279,7 @@ function spawnPirate() {
     shape: shape
   });
   world.addBody(body);
-  targets.push({ capi: capiClone, body });
+  targets.push({ enemy: capiClone, body });
 
   const mixer = new AnimationMixer(capiClone);
   capiClone.userData.mixer = mixer;
@@ -276,40 +288,64 @@ function spawnPirate() {
   action.play();
 }
 
+function spawnSkeleton() {
+  if (!skeletonModel) return;
+
+  const skeletonClone = SkeletonUtils.clone(skeletonModel);
+  const spawnPosition = getRandomPositionInCastle();
+  skeletonClone.position.set(spawnPosition.x, spawnPosition.y, spawnPosition.z);
+  scene.add(skeletonClone);
+
+  const shape = new CANNON.Sphere(1);
+  const body = new CANNON.Body({
+    mass: 1,
+    position: spawnPosition,
+    shape: shape
+  });
+  world.addBody(body);
+  targets.push({ enemy: skeletonClone, body, type: 'skeleton' });
+
+  const mixer = new AnimationMixer(skeletonClone);
+  skeletonClone.userData.mixer = mixer;
+  skeletonClone.userData.animations = skeletonModel.userData.animations;
+  const action = mixer.clipAction(skeletonModel.userData.animations[10]); // Animation de marche
+  action.play();
+}
+
+
 
 //gestion collisions
 function killenemy(bodyA, bodyB) {
-  let pirate = targets.find((t) => t.body === bodyA || t.body === bodyB);
+  let enemy = targets.find((t) => t.body === bodyA || t.body === bodyB);
   let arrow = arrows.find((a) => a.userData.body === bodyA || a.userData.body === bodyB);
 
-  if (!pirate || !arrow) return;
-  if (pirate.isDead) return;
+  if (!enemy || !arrow || enemy.isDead) return;
 
-  pirate.body.velocity.set(0, 0, 0);
-  pirate.body.angularVelocity.set(0, 0, 0);
-  pirate.isDead = true;
+  enemy.body.velocity.set(0, 0, 0);
+  enemy.body.angularVelocity.set(0, 0, 0);
+  enemy.isDead = true;
 
-  // Jouer l'animation de mort
-  if (pirate.capi?.userData.mixer && pirate.capi?.userData.animations) {
-    const hitAnimation = pirate.capi.userData.animations[0];
+  if (enemy.enemy?.userData.mixer && enemy.enemy?.userData.animations) {
+    const hitAnimation = enemy.enemy.userData.animations[0]; // Animation de mort
     if (hitAnimation) {
-      const action = pirate.capi.userData.mixer.clipAction(hitAnimation);
+      const action = enemy.enemy.userData.mixer.clipAction(hitAnimation);
       action.reset();
       action.setLoop(LoopOnce);
       action.clampWhenFinished = true;
       action.play();
 
       action.getMixer().addEventListener("finished", () => {
-        scene.remove(pirate.capi);
-        world.removeBody(pirate.body);
-        targets = targets.filter((t) => t !== pirate);
+        scene.remove(enemy.enemy);
+        world.removeBody(enemy.body);
+        targets = targets.filter((t) => t !== enemy);
       });
     }
   }
 
-  // Augmenter le score et mettre à jour
-  score += 10;
+  // Score différent en fonction du type d'ennemi
+  score += (enemy.type === 'skeleton' ? 15 : 10);
 }
+
 
 
 
@@ -412,26 +448,25 @@ function player_update() {
 //enemy update
 function update_enemy() {
   const delta = clock.getDelta();
-  targets.forEach(({ capi, body, isDead }) => {
+  targets.forEach(({ enemy, body, isDead }) => {
     if (!isDead) {
-      // Mettre à jour la position et la rotation uniquement si le pirate n'est pas mort
-      capi.position.copy(body.position);
-      capi.position.y -= 1;
+      enemy.position.copy(body.position);
+      enemy.position.y -= 1;
 
       const direction = new Vector3();
-      direction.subVectors(camera.position, capi.position).setY(0).normalize();
-      capi.rotation.y = Math.atan2(direction.x, direction.z);
+      direction.subVectors(camera.position, enemy.position).setY(0).normalize();
+      enemy.rotation.y = Math.atan2(direction.x, direction.z);
 
-      const speed = 1;
+      let speed = (targets.find(t => t.enemy === enemy)?.type === 'skeleton' ? 4 : 1.5);
       body.velocity.set(direction.x * speed, body.velocity.y, direction.z * speed);
     }
 
-    // Mettre à jour l'animation même si le pirate est mort
-    if (capi.userData.mixer) {
-      capi.userData.mixer.update(delta);
+    if (enemy.userData.mixer) {
+      enemy.userData.mixer.update(delta);
     }
   });
 }
+
 
 // Fonction pour mettre à jour le score
 let score = 0;
