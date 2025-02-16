@@ -313,7 +313,7 @@ function getRandomPositionInCastle() {
   // Coordonnées des murs (doivent être ajustées selon ton modèle)
   const minX = -80, maxX = 80;
   const minZ = -70, maxZ = 70;
-  const y = 0; // Position au sol
+  const y = 1; // Position au sol
 
   const x = Math.random() * (maxX - minX) + minX;
   const z = Math.random() * (maxZ - minZ) + minZ;
