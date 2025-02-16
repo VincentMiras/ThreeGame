@@ -230,11 +230,6 @@ captLoader.load('Pirate_Captain.glb', (gltf) => {
 });
 
 
-world.addEventListener("collide", (event) => {
-  killenemy(event.body, event.target);
-});
-
-
 
 
 //FUNCTION
@@ -275,17 +270,14 @@ function killenemy(bodyA, bodyB) {
     return;
   }
   if (!arrow) {
-    console.log("⚠️ Pas de flèche trouvée !");
     return;
   }
 
-  console.log("🎯 Pirate touché !");
-
-  // Stopper la physique de la boule
   pirate.body.velocity.set(0, 0, 0);
   pirate.body.angularVelocity.set(0, 0, 0);
-  pirate.isDead = true; // Marquer le pirate comme mort
+  pirate.isDead = true;
 
+  //La magie de l'animation 
   if (pirate.capi?.userData.mixer && pirate.capi?.userData.animations) {
     const hitAnimation = pirate.capi.userData.animations[0];
     if (hitAnimation) {
@@ -360,8 +352,13 @@ function shootArrow(pressDuration) {
 
   arrowBody.addShape(sphereShape, new CANNON.Vec3(0, 0, boxSize.z));
   arrowBody.addEventListener("collide", (event) => {
-    console.log("Collision détectée avec:", event.body);
-    killenemy(event.body, arrowBody);
+    let relativeVelocity = event.contact.getImpactVelocityAlongNormal();
+    console.log(relativeVelocity)
+    if (Math.abs(relativeVelocity) > 10) {
+      killenemy(event.body, event.target);
+    } else {
+      // Less energy
+    }
   });
 
 
