@@ -115,13 +115,14 @@ let playerDirection = new Vector3()
 camera.position.z = 0;
 camera.position.y = 1.70;
 
-// const hitboxPlayer = new CANNON.Body({
-//   mass: 0,
-//   position: new Vector3(0,0.01,0),
-//   shape: new CANNON.Box(new Vector3(0.1,1.80,0.1))
-// });
+const playerBody = new CANNON.Body({
+  mass: 1, // Masse faible pour ne pas être immobile mais réactif
+  shape: new CANNON.Sphere(0.85), // Forme simplifiée pour le joueur
+  position: new CANNON.Vec3(camera.position.x, camera.position.y, camera.position.z)
+});
+playerBody.linearDamping = 0.999999999; // Valeur entre 0 (aucun amortissement) et 1 (arrêt immédiat)
 
-// world.addBody(hitboxPlayer);
+world.addBody(playerBody);
 
 
 //LIGHT
@@ -308,7 +309,7 @@ function spawnSkeleton() {
   const mixer = new AnimationMixer(skeletonClone);
   skeletonClone.userData.mixer = mixer;
   skeletonClone.userData.animations = skeletonModel.userData.animations;
-  const action = mixer.clipAction(skeletonModel.userData.animations[10]); // Animation de marche
+  const action = mixer.clipAction(skeletonModel.userData.animations[10]);
   action.play();
 }
 
@@ -324,6 +325,7 @@ function killenemy(bodyA, bodyB) {
   enemy.body.velocity.set(0, 0, 0);
   enemy.body.angularVelocity.set(0, 0, 0);
   enemy.isDead = true;
+  enemy.enemy.userData.mixer.stopAllAction();
 
   if (enemy.enemy?.userData.mixer && enemy.enemy?.userData.animations) {
     const hitAnimation = enemy.enemy.userData.animations[0]; // Animation de mort
@@ -439,11 +441,12 @@ function bullet_update() {
   });
 }
 
-//Player Update
+//player update
 function player_update() {
-  hitboxPlayer.position.copy(camera.position);
-  hitboxPlayer.position.y = camera.position.y - 1.69;
-};
+  camera.position.copy(playerBody.position);
+  camera.position.y += 1; // Ajuste pour que la caméra soit à la hauteur du joueur
+  console.log(camera.position)
+}
 
 //enemy update
 function update_enemy() {
@@ -482,17 +485,16 @@ function updateScore() {
 
 //ACTIONS CONTROLS
 function controls() {
-
-  let rotationSpeed = 0.005;
+  const rotationSpeed = 0.005;
+  const force = 15; // Intensité du mouvement
+  const direction = getForwardVector();
 
   if (keyStates['KeyW']) {
-    camera.position.addScaledVector(getForwardVector(), 0.05);
+    playerBody.velocity.set(direction.x * force, playerBody.velocity.y, direction.z * force);
   }
-
   if (keyStates['KeyS']) {
-    camera.position.addScaledVector(getForwardVector(), -0.05);
+    playerBody.velocity.set(-direction.x * force, playerBody.velocity.y, -direction.z * force);
   }
-
   if (keyStates['KeyA']) {
     camera.rotation.y += rotationSpeed;
   }
@@ -503,6 +505,7 @@ function controls() {
 }
 
 
+
 const clock = new Clock();
 
 // Main loop
@@ -510,14 +513,14 @@ const animation = () => {
 
   renderer.setAnimationLoop(animation); // requestAnimationFrame() replacement, compatible with XR 
 
-  cannonDebugger.update()
+  //cannonDebugger.update()
 
 
   for (let i = 0; i < STEPS_PER_FRAME; i++) {
 
     controls();
     bullet_update();
-    //player_update();
+    player_update();
     update_enemy();
     updateScore();
     world.fixedStep()
