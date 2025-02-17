@@ -180,15 +180,14 @@ let pressStartTime = 0;
 
 //LOADING BULLETS
 let arrow = null
-const b_loader = new GLTFLoader().setPath('assets/models/');
-b_loader.load('Arrow.glb', (gltf) => {
+const loader = new GLTFLoader().setPath('assets/models/');
+loader.load('Arrow.glb', (gltf) => {
   arrow = gltf.scene
   arrow.rotation.x -= Math.PI / 2;
 });
 
 //LOADING CASTLE
-const c_loader = new GLTFLoader().setPath('assets/models/');
-c_loader.load('Castle.glb', (gltf) => {
+loader.load('Castle.glb', (gltf) => {
   const castle = gltf.scene;
   castle.traverse((child) => {
     if (child.isMesh) {
@@ -232,30 +231,38 @@ c_loader.load('Castle.glb', (gltf) => {
 
 //LOAding pirates
 
-const captLoader = new GLTFLoader().setPath('assets/models/');
 let targets = [];
 let capi = null;
 
-captLoader.load('Pirate_Captain.glb', (gltf) => {
-  captLoader.load('Pirate_Captain.glb', (gltf) => {
-    capi = gltf.scene;
-    capi.scale.set(1.4, 1.4, 1.4);
-    capi.userData.animations = gltf.animations;
+loader.load('Pirate_Captain.glb', (gltf) => {
+  capi = gltf.scene;
+  capi.scale.set(1.4, 1.4, 1.4);
+  capi.userData.animations = gltf.animations;
 
-    setInterval(spawnPirate, 5000);
-  });
+  setInterval(spawnPirate, 5000);
 });
 
-const skeletonLoader = new GLTFLoader().setPath('assets/models/');
-let skeletonModel = null;
 
-skeletonLoader.load('Skeleton.glb', (gltf) => {
-  skeletonModel = gltf.scene;
-  skeletonModel.scale.set(1.4, 1.4, 1.4);
-  skeletonModel.userData.animations = gltf.animations;
+let skeleton = null;
+
+loader.load('Skeleton.glb', (gltf) => {
+  skeleton = gltf.scene;
+  skeleton.scale.set(1.4, 1.4, 1.4);
+  skeleton.userData.animations = gltf.animations;
 
   // Fait apparaître des squelettes toutes les 7 secondes
   setInterval(spawnSkeleton, 7000);
+});
+
+let skeletonwh = null;
+
+loader.load('Skeletonwh.glb', (gltf) => {
+  skeletonwh = gltf.scene;
+  skeletonwh.scale.set(1.4, 1.4, 1.4);
+  skeletonwh.userData.animations = gltf.animations;
+
+  // Fait apparaître des squelettes toutes les 7 secondes
+  setInterval(spawnSkeletonwh, 1000);
 });
 
 
@@ -280,7 +287,7 @@ function spawnPirate() {
     shape: shape
   });
   world.addBody(body);
-  targets.push({ enemy: capiClone, body });
+  targets.push({ enemy: capiClone, body, score: 15 });
 
   const mixer = new AnimationMixer(capiClone);
   capiClone.userData.mixer = mixer;
@@ -290,9 +297,9 @@ function spawnPirate() {
 }
 
 function spawnSkeleton() {
-  if (!skeletonModel) return;
+  if (!skeleton) return;
 
-  const skeletonClone = SkeletonUtils.clone(skeletonModel);
+  const skeletonClone = SkeletonUtils.clone(skeleton);
   const spawnPosition = getRandomPositionInCastle();
   skeletonClone.position.set(spawnPosition.x, spawnPosition.y, spawnPosition.z);
   scene.add(skeletonClone);
@@ -304,18 +311,42 @@ function spawnSkeleton() {
     shape: shape
   });
   world.addBody(body);
-  targets.push({ enemy: skeletonClone, body, type: 'skeleton' });
+  targets.push({ enemy: skeletonClone, body, score: 10 });
 
   const mixer = new AnimationMixer(skeletonClone);
   skeletonClone.userData.mixer = mixer;
-  skeletonClone.userData.animations = skeletonModel.userData.animations;
-  const action = mixer.clipAction(skeletonModel.userData.animations[10]);
+  skeletonClone.userData.animations = skeleton.userData.animations;
+  const action = mixer.clipAction(skeleton.userData.animations[10]);
+  action.play();
+}
+
+function spawnSkeletonwh() {
+  if (!skeletonwh) return;
+
+  const skwhClone = SkeletonUtils.clone(skeletonwh);
+  const spawnPosition = getRandomPositionInCastle();
+  skwhClone.position.set(spawnPosition.x, spawnPosition.y, spawnPosition.z);
+  scene.add(skwhClone);
+
+  const shape = new CANNON.Sphere(1);
+  const body = new CANNON.Body({
+    mass: 1,
+    position: spawnPosition,
+    shape: shape
+  });
+  world.addBody(body);
+  targets.push({ enemy: skwhClone, body, score: 5 });
+
+  const mixer = new AnimationMixer(skwhClone);
+  skwhClone.userData.mixer = mixer;
+  skwhClone.userData.animations = skeletonwh.userData.animations;
+  const action = mixer.clipAction(skeletonwh.userData.animations[12]);
   action.play();
 }
 
 
 
-//gestion collisions
+//gestion kill
 function killenemy(bodyA, bodyB) {
   let enemy = targets.find((t) => t.body === bodyA || t.body === bodyB);
   let arrow = arrows.find((a) => a.userData.body === bodyA || a.userData.body === bodyB);
@@ -345,7 +376,7 @@ function killenemy(bodyA, bodyB) {
   }
 
   // Score différent en fonction du type d'ennemi
-  score += (enemy.type === 'skeleton' ? 15 : 10);
+  score += enemy.score;
 }
 
 
@@ -445,7 +476,6 @@ function bullet_update() {
 function player_update() {
   camera.position.copy(playerBody.position);
   camera.position.y += 1; // Ajuste pour que la caméra soit à la hauteur du joueur
-  console.log(camera.position)
 }
 
 //enemy update
