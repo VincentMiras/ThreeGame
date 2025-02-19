@@ -262,7 +262,7 @@ loader.load('Skeletonwh.glb', (gltf) => {
   skeletonwh.userData.animations = gltf.animations;
 
   // Fait apparaître des squelettes toutes les 7 secondes
-  setInterval(spawnSkeletonwh, 1000);
+  setInterval(spawnSkeletonwh, 5000);
 });
 
 
