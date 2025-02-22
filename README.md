@@ -7,7 +7,7 @@ Un jeu en 3D basé sur Three.js et Cannon-es, intégrant un système de combat a
 
 ## Description du jeu
 
-Ce petit jeu est un shooter reprenant des mécanique de déplacement de doom qui permet de s'occuper quelques minutes en tirant sur des pirates pour défencdre le chateau.
+Ce petit jeu est un shooter reprenant des mécanique de déplacement de doom qui permet de s'occuper quelques minutes en tirant sur des pirates pour défendre le chateau.
 
 ## 🎮 Fonctionnalités
 - Rendu 3D avec **Three.js**
@@ -21,8 +21,8 @@ Ce petit jeu est un shooter reprenant des mécanique de déplacement de doom qui
 ## 🚀 Installation
 
 ### Prérequis
-- [Node.js](https://nodejs.org/) installé
 - Un navigateur compatible WebGL
+- [Node.js](https://nodejs.org/) installé (si vous voulez télécharger le jeu en local cf. ci-dessous) 
 
 ### Étapes
 Jouer directement au jeu sur :
@@ -57,6 +57,7 @@ ou bien :
 
 ## 🏆 Objectif
 Marquer le plus de points possible en affrontant des vagues d'ennemis !
+Amusez-vous surtout !
 
 
 ## 📜 Licence
