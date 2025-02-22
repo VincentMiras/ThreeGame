@@ -21,7 +21,10 @@ import {
   HemisphereLight,
   SpriteMaterial,
   AnimationMixer,
-  LoopOnce
+  LoopOnce,
+  AudioListener,
+  AudioLoader,
+  Audio
 } from 'three';
 
 // If you prefer to import the whole library, with the THREE prefix, use the following line instead:
@@ -83,6 +86,18 @@ scoreSprite.position.set(7, 3, -5);
 camera.add(scoreSprite);
 scene.add(camera);
 
+//Sound
+
+const listener = new AudioListener();
+camera.add(listener);
+const audioLoader = new AudioLoader();
+
+//  Son fleche
+const arrowSound = new Audio(listener);
+audioLoader.load('assets/sounds/bow_shoot.mp3', function (buffer) {
+  arrowSound.setBuffer(buffer);
+  arrowSound.setVolume(0.5); // Ajuste le volume si nécessaire
+});
 
 
 //WORLD 
@@ -250,19 +265,17 @@ loader.load('Skeleton.glb', (gltf) => {
   skeleton.scale.set(1.4, 1.4, 1.4);
   skeleton.userData.animations = gltf.animations;
 
-  // Fait apparaître des squelettes toutes les 7 secondes
-  setInterval(spawnSkeleton, 7000);
+  setInterval(spawnSkeleton, 3000);
 });
 
-let skeletonwh = null;
+let mako = null;
 
-loader.load('Skeletonwh.glb', (gltf) => {
-  skeletonwh = gltf.scene;
-  skeletonwh.scale.set(1.4, 1.4, 1.4);
-  skeletonwh.userData.animations = gltf.animations;
+loader.load('Mako.glb', (gltf) => {
+  mako = gltf.scene;
+  mako.scale.set(1.4, 1.4, 1.4);
+  mako.userData.animations = gltf.animations;
 
-  // Fait apparaître des squelettes toutes les 7 secondes
-  setInterval(spawnSkeletonwh, 5000);
+  setInterval(spawnMako, 10000);
 });
 
 
@@ -320,13 +333,13 @@ function spawnSkeleton() {
   action.play();
 }
 
-function spawnSkeletonwh() {
-  if (!skeletonwh) return;
+function spawnMako() {
+  if (!mako) return;
 
-  const skwhClone = SkeletonUtils.clone(skeletonwh);
+  const makoClone = SkeletonUtils.clone(mako);
   const spawnPosition = getRandomPositionInCastle();
-  skwhClone.position.set(spawnPosition.x, spawnPosition.y, spawnPosition.z);
-  scene.add(skwhClone);
+  makoClone.position.set(spawnPosition.x, spawnPosition.y, spawnPosition.z);
+  scene.add(makoClone);
 
   const shape = new CANNON.Sphere(1);
   const body = new CANNON.Body({
@@ -335,15 +348,24 @@ function spawnSkeletonwh() {
     shape: shape
   });
   world.addBody(body);
-  targets.push({ enemy: skwhClone, body, score: 5 });
+  targets.push({ enemy: makoClone, body, score: 20 });
 
-  const mixer = new AnimationMixer(skwhClone);
-  skwhClone.userData.mixer = mixer;
-  skwhClone.userData.animations = skeletonwh.userData.animations;
-  const action = mixer.clipAction(skeletonwh.userData.animations[12]);
+  const mixer = new AnimationMixer(makoClone);
+  makoClone.userData.mixer = mixer;
+  makoClone.userData.animations = mako.userData.animations;
+  const action = mixer.clipAction(mako.userData.animations[11]);
   action.play();
 }
 
+function parry(bodyA, bodyB) {
+  let enemy = targets.find((t) => t.body === bodyA || t.body === bodyB);
+  let arrow = arrows.find((a) => a.userData.body === bodyA || a.userData.body === bodyB);
+
+  if (!enemy || !arrow || enemy.isDead) return;
+
+  playparrySound();
+
+}
 
 
 //gestion kill
@@ -359,6 +381,15 @@ function killenemy(bodyA, bodyB) {
   enemy.enemy.userData.mixer.stopAllAction();
 
   if (enemy.enemy?.userData.mixer && enemy.enemy?.userData.animations) {
+    if (enemy.score == 10) {
+      playSKSound()
+    }
+    if (enemy.score == 20) {
+      playMakoSound()
+    }
+    if (enemy.score == 15) {
+      playCapiSound()
+    }
     const hitAnimation = enemy.enemy.userData.animations[0]; // Animation de mort
     if (hitAnimation) {
       const action = enemy.enemy.userData.mixer.clipAction(hitAnimation);
@@ -397,7 +428,7 @@ function getRandomPositionInCastle() {
   // Coordonnées des murs (doivent être ajustées selon ton modèle)
   const minX = -80, maxX = 80;
   const minZ = -70, maxZ = 70;
-  const y = 1; // Position au sol
+  const y = 1.2; // Position au sol
 
   const x = Math.random() * (maxX - minX) + minX;
   const z = Math.random() * (maxZ - minZ) + minZ;
@@ -409,6 +440,8 @@ function getRandomPositionInCastle() {
 //BULLET SEND
 function shootArrow(pressDuration) {
   if (!arrow) return;
+
+  playArrowSound()
 
   //position fleche camera 
   const arrowClone = arrow.clone();
@@ -439,7 +472,9 @@ function shootArrow(pressDuration) {
     let relativeVelocity = event.contact.getImpactVelocityAlongNormal();
     if (Math.abs(relativeVelocity) > 15) {
       killenemy(event.body, event.target);
-    } else { }
+    } else if (Math.abs(relativeVelocity) > 5) {
+      parry(event.body, event.target);
+    }
   });
 
 
@@ -534,7 +569,51 @@ function controls() {
   }
 }
 
+//superposition sons
+function playArrowSound() {
+  const arrowSoundInstance = new Audio(listener);
+  audioLoader.load('assets/sounds/bow_shoot.mp3', function (buffer) {
+    arrowSoundInstance.setBuffer(buffer);
+    arrowSoundInstance.setVolume(0.5);
+    arrowSoundInstance.play();
+  });
+}
 
+function playparrySound() {
+  const parrySoundInstance = new Audio(listener);
+  audioLoader.load('assets/sounds/parade.mp3', function (buffer) {
+    parrySoundInstance.setBuffer(buffer);
+    parrySoundInstance.setVolume(0.5);
+    parrySoundInstance.play();
+  });
+}
+
+function playSKSound() {
+  const parrySoundInstance = new Audio(listener);
+  audioLoader.load('assets/sounds/sk_death.mp3', function (buffer) {
+    parrySoundInstance.setBuffer(buffer);
+    parrySoundInstance.setVolume(0.5);
+    parrySoundInstance.play();
+  });
+}
+
+function playMakoSound() {
+  const parrySoundInstance = new Audio(listener);
+  audioLoader.load('assets/sounds/mako_death.mp3', function (buffer) {
+    parrySoundInstance.setBuffer(buffer);
+    parrySoundInstance.setVolume(0.5);
+    parrySoundInstance.play();
+  });
+}
+
+function playCapiSound() {
+  const parrySoundInstance = new Audio(listener);
+  audioLoader.load('assets/sounds/capi_death.mp3', function (buffer) {
+    parrySoundInstance.setBuffer(buffer);
+    parrySoundInstance.setVolume(0.5);
+    parrySoundInstance.play();
+  });
+}
 
 const clock = new Clock();
 
