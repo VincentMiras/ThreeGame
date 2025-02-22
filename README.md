@@ -3,7 +3,7 @@
 ![Commit Status](https://img.shields.io/github/commit-activity/t/VincentMiras/ThreeGame?)
 
 
-Un jeu en 3D basé sur Three.js et Cannon-es, intégrant un système de combat avec des flèches, des ennemis et des collisions précises.
+Un jeu en 3D basé sur Three.js et Cannon-es, intégrant un système de combat avec des flèches, des ennemis et des collisions précises. Réalisé en tant que projet d'école.
 
 ## Description du jeu
 
@@ -59,6 +59,13 @@ ou bien :
 Marquer le plus de points possible en affrontant des vagues d'ennemis !
 Amusez-vous surtout !
 
+## Sources
+
+- Beaucoup de ressources utilisées viennent des cours de M. DOGANIS:
+      https://github.com/fdoganis/three_vite
+  
+- La plupart des mécaniques ont été mises en place grâce à la documentation et aux exemples de threejs.
+      (https://threejs.org/docs/, https://threejs.org/examples/)
 
 ## 📜 Licence
 Ce projet est sous licence MIT. Utilisation libre avec attribution.
