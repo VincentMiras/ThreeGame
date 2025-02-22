@@ -2,9 +2,6 @@
 ![Build Status](https://github.com/VincentMiras/Threegame/actions/workflows/deploy.yml/badge.svg?branch=main)
 ![Commit Status](https://img.shields.io/github/commit-activity/t/VincentMiras/ThreeGame?)
 
-<p align="center">
-    <img src="public/screen.PNG" alt="baniere Logo" width="400"/>
-</p>
 
 Un jeu en 3D basé sur Three.js et Cannon-es, intégrant un système de combat avec des flèches, des ennemis et des collisions précises.
 
@@ -45,6 +42,10 @@ ou bien :
    ```sh
    npm run dev
    ```
+
+<p align="center">
+    <img src="public/screen.PNG" alt="baniere Logo" width="400"/>
+</p>
 
 ## 🎯 Commandes
 | Action            | Touche |
