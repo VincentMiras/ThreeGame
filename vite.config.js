@@ -3,9 +3,15 @@ import { viteStaticCopy } from 'vite-plugin-static-copy';
 import glsl from 'vite-plugin-glsl';
 
 export default defineConfig({
-    base: "/ThreeGame/",
+    resolve: {
+        alias: {
+            'three': path.resolve('node_modules/three')
+        }
+    },
+    base: "./",
     clearScreen: false,
     optimizeDeps: {
+        exclude: ['three'],
         esbuildOptions: {
             supported: {
                 'top-level-await': true
@@ -36,6 +42,7 @@ export default defineConfig({
             ]
         }),
         glsl()
-    ]
+    ],
+
 })
 
