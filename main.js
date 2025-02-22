@@ -48,7 +48,7 @@ import {
 // Consider using alternatives like Oimo or cannon-es
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 
-import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js';
+import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
 
 import {
   GLTFLoader
