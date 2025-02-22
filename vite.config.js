@@ -1,18 +1,11 @@
-import path from 'node:path';
 import { defineConfig } from 'vite';
 import { viteStaticCopy } from 'vite-plugin-static-copy';
 import glsl from 'vite-plugin-glsl';
 
 export default defineConfig({
-    resolve: {
-        alias: {
-            'three': path.resolve('node_modules/three')
-        }
-    },
-    base: "./",
+    base: "/ThreeGame/",
     clearScreen: false,
     optimizeDeps: {
-        exclude: ['three'],
         esbuildOptions: {
             supported: {
                 'top-level-await': true
@@ -43,7 +36,5 @@ export default defineConfig({
             ]
         }),
         glsl()
-    ],
-
+    ]
 })
-
