@@ -46,9 +46,7 @@ import {
 // See vite.config.js
 // 
 // Consider using alternatives like Oimo or cannon-es
-import {
-  OrbitControls
-} from 'three/addons/controls/OrbitControls.js';
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 
 import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js';
 
