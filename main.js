@@ -25,7 +25,7 @@ import {
   AudioListener,
   AudioLoader,
   Audio
-} from 'three';
+} from './node_modules/three';
 
 // If you prefer to import the whole library, with the THREE prefix, use the following line instead:
 // import * as THREE from 'three'
