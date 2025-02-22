@@ -3,7 +3,7 @@
 ![Commit Status](https://img.shields.io/github/commit-activity/t/VincentMiras/ThreeGame?)
 
 <p align="center">
-    <img src="screen.PNG" alt="baniere Logo" width="400"/>
+    <img src="public/screen.PNG" alt="baniere Logo" width="400"/>
 </p>
 
 Un jeu en 3D basé sur Three.js et Cannon-es, intégrant un système de combat avec des flèches, des ennemis et des collisions précises.
