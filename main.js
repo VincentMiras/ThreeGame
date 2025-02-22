@@ -459,7 +459,7 @@ function shootArrow(pressDuration) {
     let relativeVelocity = event.contact.getImpactVelocityAlongNormal();
     if (Math.abs(relativeVelocity) > 15) {
       killenemy(event.body, event.target);
-    } else if (Math.abs(relativeVelocity) > 5) {
+    } else if (Math.abs(relativeVelocity) > 3) {
       parry(event.body, event.target);
     }
   });
