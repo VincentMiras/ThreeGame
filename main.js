@@ -1,8 +1,5 @@
 "use strict";
 
-// Import only what you need, to help your bundler optimize final code size using tree shaking
-// see https://developer.mozilla.org/en-US/docs/Glossary/Tree_shaking)
-
 import {
   PerspectiveCamera,
   Scene,
@@ -15,7 +12,6 @@ import {
   Vector3,
   CanvasTexture,
   MeshToonMaterial,
-  Light,
   Color,
   DirectionalLight,
   HemisphereLight,
@@ -27,40 +23,15 @@ import {
   Audio
 } from 'three';
 
-// If you prefer to import the whole library, with the THREE prefix, use the following line instead:
-// import * as THREE from 'three'
-
-// NOTE: three/addons alias is supported by Rollup: you can use it interchangeably with three/examples/jsm/  
-
-// Importing Ammo can be tricky.
-// Vite supports webassembly: https://vitejs.dev/guide/features.html#webassembly
-// so in theory this should work:
-//
-// import ammoinit from 'three/addons/libs/ammo.wasm.js?init';
-// ammoinit().then((AmmoLib) => {
-//  Ammo = AmmoLib.exports.Ammo()
-// })
-//
-// But the Ammo lib bundled with the THREE js examples does not seem to export modules properly.
-// A solution is to treat this library as a standalone file and copy it using 'vite-plugin-static-copy'.
-// See vite.config.js
-// 
-// Consider using alternatives like Oimo or cannon-es
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-
 import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
 
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 
-
 import * as CANNON from 'cannon-es';
 
-import CannonDebugger from 'cannon-es-debugger';
 
-// Example of hard link to official repo for data, if needed
-// const MODEL_PATH = 'https://raw.githubusercontent.com/mrdoob/three.js/r173/examples/models/gltf/LeePerrySmith/LeePerrySmith.glb';
 
-//Global
+////////////////////////////////////   Global   ////////////////////////////////////////////////////////////////////
 const scene = new Scene();
 const aspect = window.innerWidth / window.innerHeight;
 const camera = new PerspectiveCamera(70, aspect, 0.1, 1000);
@@ -69,7 +40,9 @@ const renderer = new WebGLRenderer();
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
 
-// CAnvas Score
+
+
+////////////////////////////////////   Canvas Score   ////////////////////////////////////////////////////////////////////
 const scoreCanvas = document.createElement("canvas");
 const scoreCtx = scoreCanvas.getContext("2d");
 scoreCanvas.width = 256;
@@ -83,21 +56,18 @@ scoreSprite.position.set(7, 3, -5);
 camera.add(scoreSprite);
 scene.add(camera);
 
-//Sound
+
+
+//////////////////////////////////  Sound   //////////////////////////////////////////////////////////////////////////////////
 
 const listener = new AudioListener();
 camera.add(listener);
 const audioLoader = new AudioLoader();
 
-//  Son fleche
-const arrowSound = new Audio(listener);
-audioLoader.load('assets/sounds/bow_shoot.mp3', function (buffer) {
-  arrowSound.setBuffer(buffer);
-  arrowSound.setVolume(0.5); // Ajuste le volume si nécessaire
-});
 
 
-//WORLD 
+
+////////////////////////////////////  WORLD //////////////////////////////////////////////////////////////////////////////////////////////////////
 const world = new CANNON.World({
   gravity: new CANNON.Vec3(0, -9.81, 0)
 })
@@ -117,10 +87,10 @@ const ground = new Mesh(groundGeometry, groundMaterial);
 ground.position.set(0, -0.5, 0);
 scene.add(ground);
 
-const cannonDebugger = new CannonDebugger(scene, world, {
-})
 
-//PLAYER 
+
+
+////////////////////////////////////  PLAYER ////////////////////////////////////////////////////////////////////
 
 let playerDirection = new Vector3()
 
@@ -128,19 +98,22 @@ camera.position.z = 0;
 camera.position.y = 1.70;
 
 const playerBody = new CANNON.Body({
-  mass: 1, // Masse faible pour ne pas être immobile mais réactif
-  shape: new CANNON.Sphere(0.85), // Forme simplifiée pour le joueur
+  mass: 1,
+  shape: new CANNON.Sphere(0.85),
   position: new CANNON.Vec3(camera.position.x, camera.position.y, camera.position.z)
 });
-playerBody.linearDamping = 0.999999999; // Valeur entre 0 (aucun amortissement) et 1 (arrêt immédiat)
+playerBody.linearDamping = 0.999999999; //ATTENTION PROBLEME DE VITESSE DE CHUTE
 
 world.addBody(playerBody);
 
 
-//LIGHT
+
+
+
+////////////////////////////////////  LIGHT   ////////////////////////////////////////////////////////////////////
 
 scene.background = new Color(0x87CEEB);
-const light = new AmbientLight(0xffffff, 0.3); // soft white light
+const light = new AmbientLight(0xffffff, 0.3);
 scene.add(light);
 
 //Soleil
@@ -149,17 +122,19 @@ directionalLight.position.set(10, 10, 10);
 scene.add(directionalLight);
 
 // lumière jolie
-const hemisphereLight = new HemisphereLight(0xaaaaaa, 0x0000ff, 0.9); // Lumière douce venant du ciel
+const hemisphereLight = new HemisphereLight(0xaaaaaa, 0x0000ff, 0.9);
 scene.add(hemisphereLight);
 
-// test
+// Soleil pas soleil
 const directionalLight2 = new DirectionalLight(0xffdd99, 1);
 directionalLight2.position.set(5, 10, 5).normalize();
 scene.add(directionalLight2);
 
 
-//LISTNER CONTROLS
 
+
+
+////////////////////////////////////  LISTNER CONTROLS  ////////////////////////////////////////////////////////////////////
 
 const keyStates = {};
 document.addEventListener('keydown', (event) => {
@@ -184,13 +159,18 @@ window.addEventListener('mouseup', (event) => {
 });
 
 
-//BULLET GESTION
+
+
+////////////////////////////////////  BULLET GESTION  ////////////////////////////////////////////////////////////////////////
 
 const arrows = [];
 const arrowSpeed = 5;
 let pressStartTime = 0;
 
-//LOADING BULLETS
+
+
+
+////////////////////////////////////    LOADING BULLETS ////////////////////////////////////////////////////////////////////////
 let arrow = null
 const loader = new GLTFLoader().setPath('assets/models/');
 loader.load('Arrow.glb', (gltf) => {
@@ -198,7 +178,9 @@ loader.load('Arrow.glb', (gltf) => {
   arrow.rotation.x -= Math.PI / 2;
 });
 
-//LOADING CASTLE
+
+
+////////////////////////////////////// LOADING CASTLE ////////////////////////////////////////////////////////////////////////
 loader.load('Castle.glb', (gltf) => {
   const castle = gltf.scene;
   castle.traverse((child) => {
@@ -208,7 +190,7 @@ loader.load('Castle.glb', (gltf) => {
     }
   });
   scene.add(castle);
-  // MURS
+  ////////////////////////////////////// MURS
   const walls = [
     // gauche
     { xbg: -102.5, zbg: 92, xhd: -78, zhd: -96 },
@@ -241,7 +223,10 @@ loader.load('Castle.glb', (gltf) => {
   });
 });
 
-//LOAding pirates
+
+
+
+////////////////////////////////////// CHARGEMENT ENEMIS ////////////////////////////////////////////////////////////////////////
 
 let targets = [];
 let capi = null;
@@ -277,11 +262,14 @@ loader.load('Mako.glb', (gltf) => {
 
 
 
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////// FUNCTION ////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-//FUNCTION
 
 
 
+//////////////////////////////////// SPAWN ENEMIS ////////////////////////////////////////////////////////////////////////
 function spawnPirate() {
   if (!capi) return;
 
@@ -354,6 +342,11 @@ function spawnMako() {
   action.play();
 }
 
+
+//////////////////////////////////// GESTION COLLISION ////////////////////////////////////////////////////////////////////////
+
+
+//gestion parade
 function parry(bodyA, bodyB) {
   let enemy = targets.find((t) => t.body === bodyA || t.body === bodyB);
   let arrow = arrows.find((a) => a.userData.body === bodyA || a.userData.body === bodyB);
@@ -363,7 +356,6 @@ function parry(bodyA, bodyB) {
   playparrySound();
 
 }
-
 
 //gestion kill
 function killenemy(bodyA, bodyB) {
@@ -402,15 +394,12 @@ function killenemy(bodyA, bodyB) {
       });
     }
   }
-
-  // Score différent en fonction du type d'ennemi
   score += enemy.score;
 }
 
 
 
-
-//VECTEUR AVANT
+//////////////////////////////////////  Direction ////////////////////////////////////////////////////////////////////////
 function getForwardVector() {
 
   camera.getWorldDirection(playerDirection);
@@ -420,12 +409,11 @@ function getForwardVector() {
   return playerDirection;
 }
 
-//position aleatoire
+////////////////////////////////////// position aleatoire ////////////////////////////////////////////////////////////////////////
 function getRandomPositionInCastle() {
-  // Coordonnées des murs (doivent être ajustées selon ton modèle)
   const minX = -80, maxX = 80;
   const minZ = -70, maxZ = 70;
-  const y = 1.2; // Position au sol
+  const y = 1.2;
 
   const x = Math.random() * (maxX - minX) + minX;
   const z = Math.random() * (maxZ - minZ) + minZ;
@@ -464,6 +452,8 @@ function shootArrow(pressDuration) {
   const sphereRadius = 0.03;
   const sphereShape = new CANNON.Sphere(sphereRadius);
 
+
+  //listener collision
   arrowBody.addShape(sphereShape, new CANNON.Vec3(0, 0, boxSize.z));
   arrowBody.addEventListener("collide", (event) => {
     let relativeVelocity = event.contact.getImpactVelocityAlongNormal();
@@ -493,6 +483,8 @@ function shootArrow(pressDuration) {
   arrows.push(arrowClone);
 }
 
+
+////////////////////////////////////  UPDATE ELEMENTS ////////////////////////////////////////////////////////////////////////
 //Bullet Update
 function bullet_update() {
   arrows.forEach(arrowClone => {
@@ -507,7 +499,7 @@ function bullet_update() {
 //player update
 function player_update() {
   camera.position.copy(playerBody.position);
-  camera.position.y += 1; // Ajuste pour que la caméra soit à la hauteur du joueur
+  camera.position.y += 1;
 }
 
 //enemy update
@@ -532,8 +524,7 @@ function update_enemy() {
   });
 }
 
-
-// Fonction pour mettre à jour le score
+// score update
 let score = 0;
 function updateScore() {
   scoreCtx.clearRect(0, 0, scoreCanvas.width, scoreCanvas.height);
@@ -545,10 +536,10 @@ function updateScore() {
 
 
 
-//ACTIONS CONTROLS
+////////////////////////////////////  ACTIONS CONTROLS ////////////////////////////////////////////////////////////////////////
 function controls() {
   const rotationSpeed = 0.005;
-  const force = 15; // Intensité du mouvement
+  const force = 15;
   const direction = getForwardVector();
 
   if (keyStates['KeyW']) {
@@ -566,6 +557,8 @@ function controls() {
   }
 }
 
+
+//////////////////////////////////// SONS ////////////////////////////////////////////////////////////////////////
 //superposition sons
 function playArrowSound() {
   const arrowSoundInstance = new Audio(listener);
@@ -612,15 +605,15 @@ function playCapiSound() {
   });
 }
 
+
+
+//////////////////////////////////// LOOP  ////////////////////////////////////////////////////////////////////////
 const clock = new Clock();
 
 // Main loop
 const animation = () => {
 
   renderer.setAnimationLoop(animation); // requestAnimationFrame() replacement, compatible with XR 
-
-  //cannonDebugger.update()
-
 
   for (let i = 0; i < STEPS_PER_FRAME; i++) {
 
